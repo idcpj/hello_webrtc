@@ -1,0 +1,36 @@
+@startuml
+
+Title RTC 时序图
+
+actor       client1       as client1
+actor       client2       as client2
+participant WebSocketServer   as server
+
+== websocket 的初始化 ==
+client1 -> server: 连接 websocket
+server  -> client1: 连接成功
+client2 -> server: 连接 websocket
+server  -> client2: 连接成功
+
+== RTC的建立 ==
+client2 -> server:  加入房间 (type:join)
+return  加入房间(type:join)
+note right: 房间的第一人,无需处理
+||45||
+client1 -> server:  加入房间 (type:join)
+return 获取媒体资源,RTCPeer 初始化,触发ready
+client1 -> server: 通知 client2 (type:ready)
+return  不处理(type:ready)
+||20||
+server  --> client2: 进行初始化(type:ready)
+note right:获取媒体资源,\nRTCPeer 初始化,\ncreate Offer
+
+client2 -> server :  发送 offer 给 client2 (type:offer)
+return
+server  --> client1: 接收 offer (type:offer)
+note left: setRemoteDescription和\ncreateAnswer
+
+client1 -> server : 发送 answer (type:answer)
+return
+server --> client2 : 接收answer , setRemoteDescription  (type:answer)
+@enduml
