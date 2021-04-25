@@ -5,6 +5,7 @@ import (
 	"net/http"
 )
 
-func DefaultHomePageHandler(c *gin.Context){
+func DefaultHomePageHandler(c *gin.Context) {
 	c.Redirect(http.StatusFound, "/web/index.html")
+	return
 }

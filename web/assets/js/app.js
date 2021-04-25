@@ -1,7 +1,7 @@
 'use strict';
 
 
-class Main {
+class App {
     /** @type {Socket} */
     websocket=null;
 
@@ -32,7 +32,6 @@ class Main {
      * @param data {Object}
      */
     send(type,data) {
-        console.log(type);
         this.websocket.send(sendMessage(type,this.uid,this.roomid,data))
     }
 
@@ -66,8 +65,8 @@ class Main {
      * @param remoteVideo {HTMLVideoElement}
      * @constructor
      */
-    async RunPeer(VideoDOM, remoteVideo){
-        await this.peer=new Peer(this,VideoDOM,remoteVideo);
+     RunPeer(VideoDOM, remoteVideo){
+         this.peer=new Peer(this,VideoDOM,remoteVideo);
     }
 
     close(){
