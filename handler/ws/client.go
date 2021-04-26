@@ -1,7 +1,6 @@
 package ws
 
 import (
-	"fmt"
 	"github.com/gorilla/websocket"
 	"log"
 	"sync"
@@ -18,9 +17,6 @@ const (
 
 	// Send pings to peer with this period. Must be less than pongWait.
 	pingPeriod = (pongWait * 9) / 10
-
-	// Maximum message size allowed from peer.
-	maxMessageSize = 2048
 )
 
 func newClient(con *websocket.Conn, uid string, socket *socket) *client {
@@ -33,10 +29,16 @@ func newClient(con *websocket.Conn, uid string, socket *socket) *client {
 }
 
 type IClient interface {
-	ReadJson()
-	WriteJSON(response helpers.Response) error
+	Run()
+	Read()
+	Write(response *helpers.Response) error
+	ErrorResp(response *helpers.Request, err error)
+	SuccessResp(response *helpers.Request, data interface{})
+
+	match(request *helpers.Request)
+	InitHandles()
 	Close() error
-	getId() string
+	GetUid() string
 }
 
 type client struct {
@@ -46,13 +48,19 @@ type client struct {
 
 	uid  string
 	quit chan struct{}
+	mux  map[string]func(request *helpers.Request)
 }
 
-func (c *client) getId() string {
+func (c *client) Run() {
+	c.InitHandles()
+	go c.Read()
+	c.Heart()
+}
+func (c *client) GetUid() string {
 	return c.uid
 }
 
-func (c *client) ReadJson() {
+func (c *client) Read() {
 	defer func() {
 		e := recover()
 		if e != nil {
@@ -62,7 +70,6 @@ func (c *client) ReadJson() {
 		c.Close()
 	}()
 
-	//c.con.SetReadLimit(maxMessageSize)
 	c.con.SetReadDeadline(time.Now().Add(pongWait))
 	c.con.SetPongHandler(func(string) error {
 		c.con.SetReadDeadline(time.Now().Add(pongWait))
@@ -75,8 +82,8 @@ func (c *client) ReadJson() {
 		case <-c.quit:
 			return
 		default:
-			var request = helpers.Request{}
-			err := c.con.ReadJSON(&request)
+			var request = &helpers.Request{}
+			err := c.con.ReadJSON(request)
 			if err != nil {
 				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 					log.Printf("error: %v", err)
@@ -86,51 +93,34 @@ func (c *client) ReadJson() {
 				return
 			}
 
-			c.handle(request)
+			c.match(request)
 		}
 
 	}
 }
 
-func (c *client) handle(request helpers.Request) {
-	switch request.Type {
-	case PEER_ANSWER:
-		fmt.Printf("%+v\n", request.Type)
-		c.socket.conns.broadcast(request.RoomId, helpers.NewReqToResp(request))
-	case PEER_CANDIDATE:
-		c.socket.conns.broadcast(request.RoomId, helpers.NewReqToResp(request))
-	case PEER_OFFER:
-		fmt.Printf("%+v\n", request.Type)
-		c.socket.conns.broadcast(request.RoomId, helpers.NewReqToResp(request))
-
-	case PEER_READY:
-		c.SuccessResponse(request, request.Data)
-
-	case ROOM_JOIN:
-		err := c.socket.conns.join(request.RoomId, request.Uid)
-		if err != nil {
-			c.ErrorResponse(request, err)
-			return
-		}
-		c.SuccessResponse(request, request.Data)
-
-	case ROOM_QUIT:
-		err := c.socket.conns.quit(request.RoomId, request.Uid)
-		if err != nil {
-			c.ErrorResponse(request, err)
-			return
-		}
-		c.SuccessResponse(request, nil)
-	case SOCKET_HEART:
-		c.SuccessResponse(request, nil)
-
-	default:
-		log.Println("未知指令")
-
+func (c *client) match(request *helpers.Request) {
+	call, ok := c.mux[request.Type]
+	if !ok {
+		log.Println("指令类型不存在")
 	}
+	call(request)
 }
 
-func (c *client) WriteJSON(response helpers.Response) error {
+func (c *client) InitHandles() {
+	c.mux = make(map[string]func(request *helpers.Request))
+	c.mux[PEER_ANSWER] = c.baseBroadcast
+	c.mux[PEER_CANDIDATE] = c.baseBroadcast
+	c.mux[PEER_OFFER] = c.baseBroadcast
+	c.mux[PEER_READY] = c.baseCallBack
+
+	c.mux[ROOM_JOIN] = c.roomJoin
+	c.mux[ROOM_QUIT] = c.quitRoom
+
+	c.mux[SOCKET_HEART] = c.baseCallBack
+}
+
+func (c *client) Write(response *helpers.Response) error {
 	_ = c.con.SetWriteDeadline(time.Now().Add(writeWait))
 	e := c.con.WriteJSON(response)
 	if e != nil {
@@ -139,18 +129,18 @@ func (c *client) WriteJSON(response helpers.Response) error {
 	return nil
 }
 
-func (c *client) ErrorResponse(request helpers.Request, err error) {
-	c.WriteJSON(helpers.NewErrorResp(request.RoomId, request.Uid, request.Type, err.Error()))
+func (c *client) ErrorResp(request *helpers.Request, err error) {
+	c.Write(helpers.NewErrorResp(request.RoomId, request.Uid, request.Type, err.Error()))
 }
 
-func (c *client) SuccessResponse(request helpers.Request, data interface{}) {
-	c.WriteJSON(helpers.NewSuccessResp(request.RoomId, request.Uid, request.Type, data))
+func (c *client) SuccessResp(request *helpers.Request, data interface{}) {
+	c.Write(helpers.NewSuccessResp(request.RoomId, request.Uid, request.Type, data))
 }
 
 func (c *client) Close() error {
 	c.onece.Do(func() {
-		log.Printf("client %s 退出 \n", c.getId())
-		c.socket.conns.del(c.getId())
+		log.Printf("client %s 退出 \n", c.GetUid())
+		c.socket.conns.del(c.GetUid())
 		_ = c.con.WriteMessage(websocket.CloseMessage, []byte{})
 		close(c.quit)
 		c.con.Close()

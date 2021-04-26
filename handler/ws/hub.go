@@ -11,7 +11,7 @@ type IHub interface {
 	// user
 	add(client IClient) error
 	del(uid string) error
-	send(uid string, response helpers.Response) error
+	send(uid string, response *helpers.Response) error
 	exist(uid string) bool
 
 	//room
@@ -21,7 +21,7 @@ type IHub interface {
 	roomEmpty(roomId string) bool
 
 	// msg
-	broadcast(roomId string, response helpers.Response) error
+	broadcast(roomId string, response *helpers.Response) error
 
 	Close() error
 }
@@ -90,12 +90,12 @@ func (h *hub) del(uid string) error {
 	return nil
 }
 
-func (h *hub) send(uid string, response helpers.Response) error {
+func (h *hub) send(uid string, response *helpers.Response) error {
 	if !h.exist(uid) {
 		return ERRPR_USER_NOT_EXIST
 	}
 
-	return h.conns[uid].WriteJSON(response)
+	return h.conns[uid].Write(response)
 }
 
 func (h *hub) exist(uid string) bool {
@@ -107,7 +107,7 @@ func (h *hub) Del(client IClient) error {
 	h.mx.Lock()
 	defer h.mx.Unlock()
 
-	delete(h.conns, client.getId())
+	delete(h.conns, client.GetUid())
 	return nil
 }
 
@@ -115,23 +115,23 @@ func (h *hub) add(client IClient) error {
 	h.mx.Lock()
 	defer h.mx.Unlock()
 
-	_, ok := h.conns[client.getId()]
+	_, ok := h.conns[client.GetUid()]
 	if ok {
 		return ERROR_USER_EXIST
 	}
 
-	h.conns[client.getId()] = client
+	h.conns[client.GetUid()] = client
 	log.Println("添加人员后,总人数为", len(h.conns))
 
 	return nil
 }
 
-func (h *hub) broadcast(roomId string, response helpers.Response) error {
+func (h *hub) broadcast(roomId string, response *helpers.Response) error {
 	h.mx.RLock()
 	defer h.mx.RUnlock()
 
 	for _, client := range h.rooms[roomId] {
-		client.WriteJSON(response)
+		client.Write(response)
 	}
 
 	return nil

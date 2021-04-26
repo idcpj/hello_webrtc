@@ -11,9 +11,8 @@ class Peer {
     /** @type HTMLVideoElement */
     remoteVideo;
 
-    /** @type App */
-    app
-
+    /** @type Socket */
+    ws;
 
     pcConfig = {
         'iceServers': [{
@@ -41,34 +40,50 @@ class Peer {
      *
      * @param localVideo {HTMLVideoElement}
      * @param remoteVideo {HTMLVideoElement}
-     * @param app {App}
+     * @param ws {Socket}
      */
-    constructor(app, localVideo, remoteVideo) {
-        this.app = app
+    constructor(localVideo, remoteVideo,ws) {
 
         this.localVideo = localVideo
         this.remoteVideo = remoteVideo
+        this.ws=ws
 
-        this._initPeer()
+        this.localPeer =  new RTCPeerConnection(this.pcConfig)
 
     }
 
-    _initPeer(){
-        console.log("init localPeer");
-        this._createPeer()
+    /**
+     *
+     * @param mediaType {String}  example=video,desktop
+     */
+    initMedia(mediaType){
 
+        let media;
 
-        // navigator.mediaDevices.getUserMedia(this.constraints)
-        navigator.mediaDevices.getDisplayMedia(this.constraints)
-            .then((stream) =>  this._getMediaStream(stream))
-            .then(()=>{
-                this._addTracks()
-                this.localPeer.addEventListener("icecandidate", event => this._icecandidate(event))
-                this.localPeer.addEventListener("track", event=>this._track(event))
+        switch (mediaType) {
+            case "video":
+                 media = navigator.mediaDevices.getUserMedia(this.constraints);
+                break;
+            case "desktop":
+                 media = navigator.mediaDevices.getDisplayMedia(this.constraints)
+                break;
+            default:
+                alert("未知媒体类型")
+                return
+        }
 
-            }).catch(e => {
-                console.log("getUserMedia is error:", e)
+        media.then((stream) => {
+            this._getMediaStream(stream)
+        }).then(()=>{
+            this.localStream.getTracks().forEach((track) => {
+                this.localPeer.addTrack(track, this.localStream);
             });
+
+            this.localPeer.addEventListener("icecandidate", event => this._icecandidate(event))
+            this.localPeer.addEventListener("track", event=>this._track(event))
+
+        }).then(()=>[
+        ])
     }
 
     close() {
@@ -85,11 +100,19 @@ class Peer {
 
         this.localPeer.createAnswer().then( (sdp) =>{
 
-            console.log("get answer");
             this.localPeer.setLocalDescription(sdp).catch(e => console.log(e))
-            this.app.send(sdp.type, sdp)
+            this.ws.send(sdp.type,this.ws.roomid,sdp)
 
         }).catch(e => console.log(e))
+    }
+
+
+    async createOffer() {
+        await this.localPeer.createOffer(this.offerOptions).then(sdp=>{
+            this.localPeer.setLocalDescription(sdp).catch(e => console.log(e))
+            // 通知远程
+            this.ws.send(sdp.type,this.ws.roomid,sdp)
+        })
     }
 
     /**
@@ -126,7 +149,7 @@ class Peer {
      */
     _icecandidate(event) {
         if (event.candidate) {
-            this.app.send(PEER_CANDIDATE, event.candidate)
+            this.ws.send(PEER_CANDIDATE,this.ws.roomid, event.candidate)
         }
     }
 
@@ -142,33 +165,6 @@ class Peer {
         // this.once=true
     }
 
-
-    _addTracks() {
-        console.log("add localPeer tracks");
-        this.localStream.getTracks().forEach((track) => {
-            this.localPeer.addTrack(track, this.localStream);
-        });
-    }
-
-    _createPeer() {
-        console.log("create peer");
-        this.localPeer = new RTCPeerConnection()
-    }
-
-    async createOffer() {
-        console.log("create Offer");
-        /**
-         *
-         * @type {RTCSessionDescriptionInit}
-         */
-        await this.localPeer.createOffer(this.offerOptions).then(sdp=>{
-            this.localPeer.setLocalDescription(sdp).catch(e => console.log(e))
-            // 通知远程
-            this.app.send(sdp.type, sdp)
-        })
-
-
-    }
 
 
 }

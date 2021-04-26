@@ -3,112 +3,71 @@
 
 class Socket {
 
-    /**
-     * @type {WebSocket}
-     */
-    ws=null
-
-    /**
-     *
-     * @type {App}
-     */
-    app;
-
-    /**
-     * @type {String}
-     */
+    /** @type {WebSocket} */
+    ws = null
+    /** @type {String} */
     uid;
+    /** @type {String} */
+    roomid;
 
 
     /**
      *
      * @param url {String}
      * @param uid {String}
-     * @param app {App}
+     * @param roomid {String}
      */
-    constructor(url, uid,app) {
+    constructor(url, uid,roomid) {
         this.uid = uid
-        this.app = app
-
+        this.roomid=roomid
         this.ws = new WebSocket(url + "?uid=" + uid);
 
     }
 
-
     /**
-     * @param type  {String} type=[open,message,error,close]
-     * @param func {Function}
+     *
+     * @param type {string}
+     * @param func {Function} func(event,response,isYourSelf)
      */
-    bindEvent(type,func){
+    addEventListener(type, func) {
+        const arr = ['error', 'open', 'close']
+        if (arr.includes(type)) {
+            this.ws.addEventListener(type, event => func(event))
+        } else {
 
-        /**
-         * @param resp {CloseEvent|Event|MessageEvent}
-         */
-        let handle = (resp)=>{
-
-
-            // open,error,close
-            if (resp.type!=="message") {
-                // open,error,close 没有 data
-                func(resp)
-                return;
-            }
-
-            const data = JSON.parse(resp.data)
-
-            // message 单独处理
-            switch (data.type) {
-                case PEER_OFFER:
-                    // 过滤自己
-                    if (data.uid===this.app.uid){
-                        console.log("过滤自己")
-                        return
-                    }
-                    console.log(PEER_OFFER);
-                    this.app.peer.setRemoteDescription(data.data);
-                    this.app.peer.createAnswer();
-                    break;
-
-                case PEER_ANSWER:
-                    // 过滤自己
-                    if (data.uid===this.app.uid){
-                        console.log("过滤自己")
-                        return
-                    }
-                    console.log(PEER_ANSWER);
-                    this.app.peer.setRemoteDescription(data.data);
-                    break;
-
-                case PEER_CANDIDATE:
-                    // 过滤自己
-                    if (data.uid===this.app.uid){
-                        console.log("过滤自己")
-                        return
-                    }
-                    this.app.peer.addIceCandidate(data.data);
-                    break;
-                case SEND_MSG:
-                    //todo
-                    break;
-                default:
-                    func(data.type,data.roomid,data.uid,data.data)
-            }
-        };
-
-        this.ws.addEventListener(type,handle)
+            this.ws.addEventListener("message", event => {
+                let data = JSON.parse(event.data);
+                if (type===data.type){
+                    func(event,data,this.uid===data.uid)
+                }
+            })
+        }
     }
 
     /**
      *
      * @param data {request}
      */
-    send(data ){
-        let data1 = JSON.stringify(data);
-        // console.log(data1);
-        this.ws.send(data1)
+    _send(data) {
+        this.ws.send(JSON.stringify(data))
     }
 
-    close( ){
+    /**
+     *
+     * @param type {String}
+     * @param roomid {String}
+     * @param data {Object}
+     */
+    send(type,roomid,data=null) {
+        this._send({
+            type: type,
+            roomid: roomid,
+            uid: this.uid,
+            data: data,
+        })
+    }
+
+    close() {
         this.ws.close()
     }
 

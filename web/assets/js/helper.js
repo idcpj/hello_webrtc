@@ -9,6 +9,7 @@ const PEER_READY = "peer_ready";
 
 // socket
 const SOCKET_HEART="heart"
+const SOCKET_LOGIN="login"
 
 // room
 const ROOM_JOIN = "room_join";
@@ -21,7 +22,17 @@ const SEND_MSG = "send_msg";
  *
  * @type {{uid: string, data: {}, type: string, room: string}}
  */
-let request = {
+const request = {
+    type: "",
+    roomid: "",
+    uid: "",
+    data: {},
+}
+
+
+const response = {
+    status:"", // 1=success,==failed
+    msg:"",
     type: "",
     roomid: "",
     uid: "",
@@ -36,15 +47,15 @@ let request = {
  * @param data {Object}
  * @return request
  */
-function sendMessage(type = '', uid = '', roomid = '', data = {}) {
-    return {
-        type: type,
-        roomid: roomid,
-        uid: uid,
-        data: data,
-    }
-}
-
+// function sendMessage(type = '', uid = '', roomid = '', data = {}) {
+//     return {
+//         type: type,
+//         roomid: roomid,
+//         uid: uid,
+//         data: data,
+//     }
+// }
+//
 
 
 // work 与 main的交互

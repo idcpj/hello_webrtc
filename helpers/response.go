@@ -1,7 +1,5 @@
 package helpers
 
-import ()
-
 type Response struct {
 	Status int    `json:"status"`
 	Msg    string `json:"msg"`
@@ -12,9 +10,9 @@ type Response struct {
 	Data   interface{} `json:"data" `
 }
 
-func NewReqToResp(request Request) Response {
-	return Response{
-		Status: 0,
+func NewReqToResp(request *Request) *Response {
+	return &Response{
+		Status: 1,
 		RoomId: request.RoomId,
 		Uid:    request.Uid,
 		Type:   request.Type,
@@ -22,8 +20,8 @@ func NewReqToResp(request Request) Response {
 	}
 }
 
-func NewErrorResp(roomid string, uid string, Type string, msg string) Response {
-	return Response{
+func NewErrorResp(roomid string, uid string, Type string, msg string) *Response {
+	return &Response{
 		Status: 0,
 		Msg:    msg,
 		RoomId: roomid,
@@ -33,8 +31,8 @@ func NewErrorResp(roomid string, uid string, Type string, msg string) Response {
 	}
 }
 
-func NewSuccessResp(roomid string, uid string, Type string, data interface{}) Response {
-	return Response{
+func NewSuccessResp(roomid string, uid string, Type string, data interface{}) *Response {
+	return &Response{
 		Status: 1,
 		RoomId: roomid,
 		Uid:    uid,

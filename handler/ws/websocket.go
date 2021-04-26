@@ -4,6 +4,7 @@ import (
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
+	"theia/helpers"
 )
 
 var (
@@ -19,6 +20,7 @@ func Init() {
 
 func newSocket() *socket {
 
+	h := newHub()
 	return &socket{
 		s: &websocket.Upgrader{
 			HandshakeTimeout:  30,
@@ -29,7 +31,7 @@ func newSocket() *socket {
 				return true
 			},
 		},
-		conns: newHub(),
+		conns: h,
 	}
 }
 
@@ -53,11 +55,11 @@ func (s *socket) newConn(w http.ResponseWriter, r *http.Request) error {
 	client := newClient(con, uid, s)
 
 	if err = s.conns.add(client); err != nil {
-		return err
+		client.Write(helpers.NewErrorResp("", uid, SOCKET_LOGIN, err.Error()))
+		return ERROR_USER_EXIST
 	}
 
-	go client.ReadJson()
-	go client.Heart()
+	go client.Run()
 
 	return nil
 }
