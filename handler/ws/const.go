@@ -31,4 +31,6 @@ const (
 
 	// message
 	SEND_MSG = "send_msg"
+
+	SOCKET_HEART = "heart"
 )

@@ -57,6 +57,7 @@ func (s *socket) newConn(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	go client.ReadJson()
+	go client.Heart()
 
 	return nil
 }

@@ -7,6 +7,8 @@ const PEER_OFFER     = "offer";
 
 const PEER_READY = "peer_ready";
 
+// socket
+const SOCKET_HEART="heart"
 
 // room
 const ROOM_JOIN = "room_join";
@@ -41,5 +43,16 @@ function sendMessage(type = '', uid = '', roomid = '', data = {}) {
         uid: uid,
         data: data,
     }
+}
+
+
+
+// work 与 main的交互
+// type= heart
+const workData={
+    type:"",
+    msg:"",
+    status:1, // 1=success,2=failed
+    data:{},
 }
 

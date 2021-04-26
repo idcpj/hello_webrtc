@@ -48,6 +48,13 @@
         const  app =new App();
         app.Socket(url,params.get("uid"),params.get("roomid"))
 
+        console.log("peer_answer");
+        const work = new Worker("assets/js/work.js")
+        work.addEventListener("message",function (e) {
+            const data=e.data
+            app.heart()
+        })
+
         app.RunPeer(localVideo,remoteVideo)
 
         //登录
@@ -56,7 +63,10 @@
         })
         hangup.addEventListener("click",e=>app.close())
 
-        app.bindSocketEvent("close",()=>app.close())
+        app.bindSocketEvent("close",()=>{
+            console.log("websocket 已退出");
+            app.close()
+        })
         app.bindSocketEvent("error",(event)=>console.log(event))
 
 

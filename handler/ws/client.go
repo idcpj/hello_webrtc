@@ -4,18 +4,19 @@ import (
 	"fmt"
 	"github.com/gorilla/websocket"
 	"log"
+	"sync"
 	"theia/helpers"
 	"time"
 )
 
 const (
 	// Time allowed to write a message to the peer.
-	writeWait = 60 * time.Second
+	writeWait = 10 * time.Second
 
-	// Time allowed to ReadJson the next pong message from the peer.
+	// Time allowed to read the next pong message from the peer.
 	pongWait = 60 * time.Second
 
-	// send pings to peer with this period. Must be less than pongWait.
+	// Send pings to peer with this period. Must be less than pongWait.
 	pingPeriod = (pongWait * 9) / 10
 
 	// Maximum message size allowed from peer.
@@ -41,6 +42,7 @@ type IClient interface {
 type client struct {
 	socket *socket
 	con    *websocket.Conn
+	onece  sync.Once
 
 	uid  string
 	quit chan struct{}
@@ -51,10 +53,17 @@ func (c *client) getId() string {
 }
 
 func (c *client) ReadJson() {
+	defer func() {
+		e := recover()
+		if e != nil {
+			log.Println(e)
+		}
+
+		c.Close()
+	}()
 
 	//c.con.SetReadLimit(maxMessageSize)
 	c.con.SetReadDeadline(time.Now().Add(pongWait))
-
 	c.con.SetPongHandler(func(string) error {
 		c.con.SetReadDeadline(time.Now().Add(pongWait))
 		return nil
@@ -74,9 +83,7 @@ func (c *client) ReadJson() {
 				} else {
 					log.Printf("error: %v", err)
 				}
-
-				c.Close()
-				break
+				return
 			}
 
 			c.handle(request)
@@ -114,9 +121,11 @@ func (c *client) handle(request helpers.Request) {
 			return
 		}
 		c.SuccessResponse(request, nil)
+	case SOCKET_HEART:
+		c.SuccessResponse(request, nil)
 
 	default:
-		log.Println("位置指令")
+		log.Println("未知指令")
 
 	}
 }
@@ -139,9 +148,28 @@ func (c *client) SuccessResponse(request helpers.Request, data interface{}) {
 }
 
 func (c *client) Close() error {
-	log.Printf("client %s 退出 \n", c.getId())
-	c.socket.conns.del(c.getId())
-	_ = c.con.WriteMessage(websocket.CloseMessage, []byte{})
-	close(c.quit)
-	return c.con.Close()
+	c.onece.Do(func() {
+		log.Printf("client %s 退出 \n", c.getId())
+		c.socket.conns.del(c.getId())
+		_ = c.con.WriteMessage(websocket.CloseMessage, []byte{})
+		close(c.quit)
+		c.con.Close()
+	})
+	return nil
+
+}
+
+func (c *client) Heart() {
+	tick := time.Tick(pingPeriod)
+	for {
+		select {
+		case <-c.quit:
+			return
+		case <-tick:
+			e := c.con.WriteMessage(websocket.PingMessage, nil)
+			if e != nil {
+				log.Println(e)
+			}
+		}
+	}
 }

@@ -35,6 +35,10 @@ class App {
         this.websocket.send(sendMessage(type,this.uid,this.roomid,data))
     }
 
+    heart() {
+        this.send(SOCKET_HEART)
+    }
+
     async createOffer(){
         await this.peer.createOffer()
     }
