@@ -25,15 +25,10 @@ class Peer {
     };
 
     constraints = {
-        video: {
-            width: 640,
-            height: 480
-        },
-        audio: {
-            echoCancellation: true,
-            noiseSupperssion: true,
-            autoGainControl: true
-        }
+        // width: { min: 640, ideal: 1920, max: 1920 },
+        // height: { min: 400, ideal: 1080 },
+        aspectRatio: 1.777777778,
+        facingMode: { exact: "user" }
     };
 
     /**
@@ -76,6 +71,7 @@ class Peer {
             this._getMediaStream(stream)
         }).then(()=>{
             this.localStream.getTracks().forEach((track) => {
+                console.log(track.getSettings());
                 this.localPeer.addTrack(track, this.localStream);
             });
 
@@ -92,7 +88,6 @@ class Peer {
     }
 
     setRemoteDescription(data) {
-        console.log("setRemoteDescription");
         this.localPeer.setRemoteDescription(new RTCSessionDescription(data)).catch(e => console.log(e))
     }
 

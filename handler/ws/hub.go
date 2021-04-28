@@ -11,7 +11,6 @@ type IHub interface {
 	// user
 	add(client IClient) error
 	del(uid string) error
-	send(uid string, response *helpers.Response) error
 	exist(uid string) bool
 
 	//room
@@ -19,17 +18,22 @@ type IHub interface {
 	quit(roomId string, uid string) error
 	roomExist(roomId string) bool
 	roomEmpty(roomId string) bool
+	roomIsMax(roomid string) bool
+	MemberIsExist(room string, uid string) bool
 
 	// msg
+	send(uid string, response *helpers.Response) error
 	broadcast(roomId string, response *helpers.Response) error
+	sendOther(roomId string, response *helpers.Response) error
 
 	Close() error
 }
 
 func newHub() *hub {
 	return &hub{
-		conns: make(map[string]IClient),
-		rooms: make(map[string]map[string]IClient),
+		conns:    make(map[string]IClient),
+		rooms:    make(map[string]map[string]IClient),
+		roomsMax: 2,
 	}
 }
 
@@ -37,16 +41,45 @@ type hub struct {
 	conns map[string]IClient
 	rooms map[string]map[string]IClient
 
-	mx sync.RWMutex
+	roomsMax int
+	mx       sync.RWMutex
+}
+
+func (h *hub) MemberIsExist(room string, uid string) bool {
+	h.mx.RLock()
+	defer h.mx.RUnlock()
+	if len(h.rooms[room]) <= 0 {
+		return false
+	}
+	_, ok := h.rooms[room][uid]
+	if ok {
+		return true
+	}
+	return false
+}
+
+func (h *hub) roomIsMax(roomid string) bool {
+	h.mx.RLock()
+	defer h.mx.RUnlock()
+
+	if len(h.rooms[roomid]) >= h.roomsMax {
+		return true
+	}
+	return false
 }
 
 func (h *hub) join(roomId string, uid string) error {
-	h.mx.Lock()
-	defer h.mx.Unlock()
 
 	if h.roomEmpty(roomId) {
 		h.rooms[roomId] = make(map[string]IClient)
+	} else if h.MemberIsExist(roomId, uid) {
+		return ERROR_ROOM_MEMBER_IS_EXIST
+	} else if h.roomIsMax(roomId) {
+		return ERROR_ROOM_MEMBER_TOO_MANY
 	}
+
+	h.mx.Lock()
+	defer h.mx.Unlock()
 
 	client, ok := h.conns[uid]
 	if !ok {
@@ -54,18 +87,20 @@ func (h *hub) join(roomId string, uid string) error {
 	}
 
 	h.rooms[roomId][uid] = client
+	client.SetRoomId(roomId)
 
 	return nil
 
 }
 
 func (h *hub) quit(roomId string, uid string) error {
-	h.mx.Lock()
-	defer h.mx.Unlock()
-
 	if h.roomEmpty(roomId) {
 		return ERROR_ROOM_NOT_EXIST
 	}
+
+	h.mx.Lock()
+	defer h.mx.Unlock()
+
 	delete(h.rooms[roomId], uid)
 	return nil
 
@@ -80,6 +115,8 @@ func (h *hub) roomExist(roomId string) bool {
 }
 
 func (h *hub) roomEmpty(roomId string) bool {
+	h.mx.RLock()
+	defer h.mx.RUnlock()
 	return len(h.rooms[roomId]) == 0
 }
 
@@ -126,6 +163,18 @@ func (h *hub) add(client IClient) error {
 	return nil
 }
 
+func (h *hub) sendOther(roomId string, response *helpers.Response) error {
+	h.mx.RLock()
+	defer h.mx.RUnlock()
+
+	for _, client := range h.rooms[roomId] {
+		if client.GetUid() != response.Uid {
+			client.Write(response)
+		}
+	}
+
+	return nil
+}
 func (h *hub) broadcast(roomId string, response *helpers.Response) error {
 	h.mx.RLock()
 	defer h.mx.RUnlock()

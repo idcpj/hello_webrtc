@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <title>Title</title>
+    <style>
+        video{
+            width: 300px;
+            height: 300px;
+        }
+    </style>
 </head>
 <body>
 
@@ -14,6 +20,7 @@
 
 <br>
 <video id="local-video" autoplay="autoplay" playsinline="true" controls muted></video>
+<br>
 <video id="remote-video" playsinline="true" autoplay="autoplay" controls></video>
 
 
@@ -57,7 +64,7 @@
         })
 
         quitRoom.addEventListener("click",event=>{
-
+            ws.send(ROOM_QUIT,roomid)
         })
 
 
@@ -138,12 +145,25 @@
         })
 
         ws.addEventListener(ROOM_QUIT, (event, data, self) => {
+            if (data.status===0) {
+                alert(data.msg)
+            }
 
+            if (self){
+                console.log("成功退出房间");
+            }
         })
 
         ws.addEventListener(SEND_MSG, (event, data, self) => {
 
         })
+
+        window.addEventListener("unload",event=>{
+            console.log("unload");
+            ws.close()
+            peer.close()
+        })
+
 
     }
 

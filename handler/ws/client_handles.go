@@ -4,8 +4,8 @@ import (
 	"theia/helpers"
 )
 
-func (c *client) baseBroadcast(request *helpers.Request) {
-	c.socket.conns.broadcast(request.RoomId, helpers.NewReqToResp(request))
+func (c *client) baseSendOther(request *helpers.Request) {
+	c.socket.conns.sendOther(request.RoomId, helpers.NewReqToResp(request))
 }
 
 func (c *client) baseCallBack(request *helpers.Request) {

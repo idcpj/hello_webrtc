@@ -12,7 +12,9 @@ var (
 
 	// room
 
-	ERROR_ROOM_NOT_EXIST = errors.New("房间不存在")
+	ERROR_ROOM_NOT_EXIST       = errors.New("房间不存在")
+	ERROR_ROOM_MEMBER_TOO_MANY = errors.New("房间人数过多")
+	ERROR_ROOM_MEMBER_IS_EXIST = errors.New("房间中已存在此userid")
 
 	ERROR_REQUEST_NOT_ALLOW = errors.New("该请求不是 websocket 连接")
 )

@@ -30,15 +30,20 @@ func newClient(con *websocket.Conn, uid string, socket *socket) *client {
 
 type IClient interface {
 	Run()
+
 	Read()
 	Write(response *helpers.Response) error
+
 	ErrorResp(response *helpers.Request, err error)
 	SuccessResp(response *helpers.Request, data interface{})
 
 	match(request *helpers.Request)
 	InitHandles()
-	Close() error
+
 	GetUid() string
+	SetRoomId(string)
+
+	Close() error
 }
 
 type client struct {
@@ -46,9 +51,14 @@ type client struct {
 	con    *websocket.Conn
 	onece  sync.Once
 
-	uid  string
-	quit chan struct{}
-	mux  map[string]func(request *helpers.Request)
+	uid    string
+	roomid string
+	quit   chan struct{}
+	mux    map[string]func(request *helpers.Request)
+}
+
+func (c *client) SetRoomId(roomid string) {
+	c.roomid = roomid
 }
 
 func (c *client) Run() {
@@ -109,9 +119,9 @@ func (c *client) match(request *helpers.Request) {
 
 func (c *client) InitHandles() {
 	c.mux = make(map[string]func(request *helpers.Request))
-	c.mux[PEER_ANSWER] = c.baseBroadcast
-	c.mux[PEER_CANDIDATE] = c.baseBroadcast
-	c.mux[PEER_OFFER] = c.baseBroadcast
+	c.mux[PEER_ANSWER] = c.baseSendOther
+	c.mux[PEER_CANDIDATE] = c.baseSendOther
+	c.mux[PEER_OFFER] = c.baseSendOther
 	c.mux[PEER_READY] = c.baseCallBack
 
 	c.mux[ROOM_JOIN] = c.roomJoin
@@ -125,6 +135,8 @@ func (c *client) Write(response *helpers.Response) error {
 	e := c.con.WriteJSON(response)
 	if e != nil {
 		log.Println(e)
+
+		c.Close()
 	}
 	return nil
 }
@@ -140,6 +152,10 @@ func (c *client) SuccessResp(request *helpers.Request, data interface{}) {
 func (c *client) Close() error {
 	c.onece.Do(func() {
 		log.Printf("client %s 退出 \n", c.GetUid())
+
+		if c.roomid != "" {
+			c.socket.conns.quit(c.roomid, c.GetUid())
+		}
 		c.socket.conns.del(c.GetUid())
 		_ = c.con.WriteMessage(websocket.CloseMessage, []byte{})
 		close(c.quit)
@@ -159,6 +175,7 @@ func (c *client) Heart() {
 			e := c.con.WriteMessage(websocket.PingMessage, nil)
 			if e != nil {
 				log.Println(e)
+				c.Close()
 			}
 		}
 	}
