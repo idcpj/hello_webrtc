@@ -17,6 +17,8 @@ var (
 	ERROR_ROOM_MEMBER_IS_EXIST = errors.New("房间中已存在此userid")
 
 	ERROR_REQUEST_NOT_ALLOW = errors.New("该请求不是 websocket 连接")
+
+	ERROR_ROOMID_NOT_EXIST = errors.New(" 房间id 不存在")
 )
 
 const (

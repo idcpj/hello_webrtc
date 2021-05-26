@@ -24,11 +24,22 @@ class Peer {
         offerToReceiveVideo: 1
     };
 
-    constraints = {
+    userMediaConfig = {
         // width: { min: 640, ideal: 1920, max: 1920 },
         // height: { min: 400, ideal: 1080 },
         aspectRatio: 1.777777778,
-        facingMode: { exact: "user" }
+        facingMode: {exact: "user"},
+        audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+        },
+    }
+    displayMediaConfig = {
+        // width: { min: 640, ideal: 1920, max: 1920 },
+        // height: { min: 400, ideal: 1080 },
+        aspectRatio: 1.777777778,
+        facingMode: { exact: "user" },
     };
 
     /**
@@ -57,10 +68,10 @@ class Peer {
 
         switch (mediaType) {
             case "video":
-                 media = navigator.mediaDevices.getUserMedia(this.constraints);
+                 media = navigator.mediaDevices.getUserMedia(this.userMediaConfig);
                 break;
             case "desktop":
-                 media = navigator.mediaDevices.getDisplayMedia(this.constraints)
+                 media = navigator.mediaDevices.getDisplayMedia(this.displayMediaConfig)
                 break;
             default:
                 alert("未知媒体类型")

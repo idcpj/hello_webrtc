@@ -13,6 +13,10 @@ func (c *client) baseCallBack(request *helpers.Request) {
 }
 
 func (c *client) roomJoin(request *helpers.Request) {
+	if request.RoomId == "" {
+		c.ErrorResp(request, ERROR_ROOMID_NOT_EXIST)
+		return
+	}
 	err := c.socket.conns.join(request.RoomId, request.Uid)
 	if err != nil {
 		c.ErrorResp(request, err)
