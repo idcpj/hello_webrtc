@@ -19,14 +19,24 @@
 <button id="hangup">挂起</button>
 
 <br>
-<video id="local-video" autoplay="autoplay" playsinline="true" controls muted></video>
+<div id="control-area">
+
+    <video id="local-video" autoplay="autoplay" playsinline="true"  muted></video>
+    <video id="remote-video" playsinline="true" autoplay="autoplay" ></video>
+</div>
+
 <br>
-<video id="remote-video" playsinline="true" autoplay="autoplay" controls></video>
+内容:<textarea name="" id="msg-content" cols="30" rows="10"></textarea>
+<br>
+<input type="text" id="msg-data">
+<br>
+<input type="button" value="发送" id="submit">
 
 
 <script src="assets/js/socket.js"></script>
 <script src="assets/js/peer.js"></script>
 <script src="assets/js/helper.js"></script>
+<!--<script src="assets/js/adapter.js"></script>-->
 
 <script>
 
@@ -53,6 +63,10 @@
         const localVideo = document.querySelector("#local-video")
         const remoteVideo = document.querySelector("#remote-video")
         const quitRoom = document.querySelector("#quit-room")
+        const msgContent = document.querySelector("#msg-content")
+        const submit = document.querySelector("#submit")
+        const msgData = document.querySelector("#msg-data")
+        const controlArea = document.querySelector("#control-area")
 
 
         const ws = new Socket(url, uid,roomid)
@@ -140,9 +154,6 @@
             }
         })
 
-        ws.addEventListener(SOCKET_HEART, (event, data, self) => {
-            // nothing
-        })
 
         ws.addEventListener(ROOM_QUIT, (event, data, self) => {
             if (data.status===0) {
@@ -154,7 +165,23 @@
             }
         })
 
-        ws.addEventListener(SEND_MSG, (event, data, self) => {
+        ws.peer.addEventListener(CHANNEL_MSG, (event, data, self) => {
+            if (data.status===0) {
+                alert(data.msg)
+            }
+
+            msgContent.value+=data.data.msg+"\n"
+        })
+
+        var a=0
+        submit.addEventListener("click", event => {
+
+            setInterval(function (){
+                a++
+                ws.sendDataChannel(CHANNEL_MSG,{
+                    msg: a+"",
+                })
+            },100)
 
         })
 

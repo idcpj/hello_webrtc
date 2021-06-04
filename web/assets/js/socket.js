@@ -10,6 +10,9 @@ class Socket {
     /** @type {String} */
     roomid;
 
+    /** @type {Peer} */
+    peer
+
 
     /**
      *
@@ -44,13 +47,7 @@ class Socket {
         }
     }
 
-    /**
-     *
-     * @param data {request}
-     */
-    _send(data) {
-        this.ws.send(JSON.stringify(data))
-    }
+
 
     /**
      *
@@ -59,12 +56,23 @@ class Socket {
      * @param data {Object}
      */
     send(type,roomid,data=null) {
-        this._send({
+
+        this.ws.send(JSON.stringify({
             type: type,
             roomid: roomid,
             uid: this.uid,
             data: data,
-        })
+        }))
+
+    }
+
+    sendDataChannel(type,data=null,roomid){
+        this.peer.DataChannel.send(JSON.stringify({
+            type: type,
+            roomid: '',
+            uid: this.uid,
+            data: data,
+        }))
     }
 
     close() {

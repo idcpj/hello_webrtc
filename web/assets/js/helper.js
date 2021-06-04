@@ -18,6 +18,19 @@ const ROOM_QUIT = "room_quit";
 // msg
 const SEND_MSG = "send_msg";
 
+// datachannel
+
+const  CHANNEL_DATA="channel_data"
+const  CHANNEL_MSG="channel_msg"
+const  CHANNEL_MOUSE="channel_mouse"
+
+
+// mouse
+
+const MOUSE_MOVE="mouse_move"
+const MOUSE_CLICK="mouse_click"
+const MOUSE_DBCLICK="mouse_dbclick"
+
 /**
  *
  * @type {{uid: string, data: {}, type: string, room: string}}
@@ -38,24 +51,6 @@ const response = {
     uid: "",
     data: {},
 }
-
-/**
- *
- * @param type {String}
- * @param uid {String}
- * @param roomid {String}
- * @param data {Object}
- * @return request
- */
-// function sendMessage(type = '', uid = '', roomid = '', data = {}) {
-//     return {
-//         type: type,
-//         roomid: roomid,
-//         uid: uid,
-//         data: data,
-//     }
-// }
-//
 
 
 // work 与 main的交互
