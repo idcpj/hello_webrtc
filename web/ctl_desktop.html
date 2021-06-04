@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-cmn-Hans">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Title</title>
+    <style>
+        video{
+            /*width: 300px;*/
+            /*height: 300px;*/
+        }
+    </style>
+</head>
+<body>
+
+
+<button id="start">加入房间</button>
+<button id="quit-room">退出房间</button>
+<button id="hangup">挂起</button>
+
+<br>
+<!--<video id="local-video" autoplay="autoplay" playsinline="true" controls muted  ></video>-->
+<br>
+
+<div style="width: 100%;height: 800px">
+    <video id="remote-video" playsinline="true" autoplay="autoplay" ></video>
+
+</div>
+
+
+<script src="assets/js/socket.js"></script>
+<script src="assets/js/peer.js"></script>
+<script src="assets/js/helper.js"></script>
+
+<script>
+
+    window.onload = function () {
+        const url = (window.location.protocol === 'http:' ? 'ws' : "wss") + "://" + window.location.host + "/wss"
+        const params = new URLSearchParams(document.location.search)
+
+        const uid = params.get("uid");
+        const roomid = params.get("roomid");
+
+        if (uid === null || uid === "") {
+            alert("uid 参数为空")
+            return
+        }
+
+        if (roomid === null || roomid === "") {
+            alert("roomid 参数为空")
+            return
+        }
+
+
+        const start = document.querySelector("#start")
+        const hangup = document.querySelector("#hangup")
+        const localVideo = document.querySelector("#local-video")
+        const remoteVideo = document.querySelector("#remote-video")
+        const quitRoom = document.querySelector("#quit-room")
+
+
+        const ws = new Socket(url, uid,roomid)
+        const peer = new Peer(localVideo, remoteVideo,ws,false)
+
+        hangup.addEventListener("click", event => {
+            ws.close()
+            peer.close()
+        })
+
+        quitRoom.addEventListener("click",event=>{
+            ws.send(ROOM_QUIT,roomid)
+        })
+
+
+        ws.addEventListener("error", (event) => {
+            console.log(event)
+        })
+
+        ws.addEventListener("close", () => {
+            ws.close()
+            peer.close()
+        })
+
+
+        start.addEventListener("click", () => {
+            ws.send(ROOM_JOIN, roomid)
+        })
+
+        ws.addEventListener("open", (event) => {
+            console.log(`websocket 成功连接`);
+
+            if (self){
+                console.log("初始化媒体");
+                peer.initMedia("")
+
+                //加入心跳
+                let worker = new Worker("assets/js/work.js");
+                worker.addEventListener("message", function (e) {
+                    ws.send(SOCKET_HEART)
+                })
+            }
+        })
+
+        // 处理登录失败逻辑
+        ws.addEventListener(SOCKET_LOGIN,(event,data,self)=>{
+            if (data.status===0){
+                alert(data.msg)
+                ws.close()
+                peer.close()
+            }
+
+        })
+
+        ws.addEventListener(ROOM_JOIN, (event, data, self) => {
+            if (data.status===0) {
+                alert(data.msg)
+            }
+
+            if (self) {
+                console.log(`用户 ${data.uid} 加入 ${data.roomid} 房间成功`);
+                peer.createOffer()
+                console.log("create Offer");
+            }
+
+        })
+
+        ws.addEventListener(PEER_CANDIDATE, (event, data, self) => {
+            if (!self) {
+                peer.addIceCandidate(data.data);
+            }
+        })
+
+        ws.addEventListener(PEER_ANSWER, (event, data, self) => {
+            if (!self) {
+                peer.setRemoteDescription(data.data);
+            }
+        })
+
+        ws.addEventListener(PEER_OFFER, (event, data, self) => {
+            if (!self) {
+                peer.setRemoteDescription(data.data);
+                peer.createAnswer();
+                console.log("create Answer");
+            }
+        })
+
+        ws.addEventListener(SOCKET_HEART, (event, data, self) => {
+            // nothing
+        })
+
+        ws.addEventListener(ROOM_QUIT, (event, data, self) => {
+            if (data.status===0) {
+                alert(data.msg)
+            }
+
+            if (self){
+                console.log("成功退出房间");
+            }
+        })
+
+        ws.addEventListener(SEND_MSG, (event, data, self) => {
+
+        })
+
+
+        remoteVideo.addEventListener("click", event => {
+            ws.peer
+
+            ws.sendDataChannel(CHANNEL_MOUSE,{
+                mouse_x:'',
+                mouse_y:'',
+                mouse_type:MOUSE_CLICK,
+            })
+
+        })
+
+        remoteVideo.addEventListener("dblclick", event => {
+
+            ws.sendDataChannel(CHANNEL_MOUSE,{
+                mouse_x:'',
+                mouse_y:'',
+                mouse_type:MOUSE_DBCLICK,
+            })
+
+        })
+
+        remoteVideo.addEventListener("mousemove", event => {
+
+            ws.sendDataChannel(CHANNEL_MOUSE,{
+                mouse_x:'',
+                mouse_y:'',
+                mouse_type:MOUSE_MOVE,
+            })
+
+        })
+
+
+        window.addEventListener("unload",event=>{
+            console.log("unload");
+            ws.close()
+            peer.close()
+        })
+
+
+    }
+
+
+</script>
+</body>
+</html>

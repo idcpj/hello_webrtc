@@ -5,7 +5,7 @@ import (
 	"log"
 )
 
-// router handle
+// WebSocketServer router handle
 func WebSocketServer(c *gin.Context) {
 	if !c.IsWebsocket() {
 		log.Println(ERROR_REQUEST_NOT_ALLOW)

@@ -17,7 +17,7 @@ func (c *client) roomJoin(request *helpers.Request) {
 		c.ErrorResp(request, ERROR_ROOMID_NOT_EXIST)
 		return
 	}
-	err := c.socket.conns.join(request.RoomId, request.Uid)
+	err := c.socket.conns.join(request.RoomId, c.uid)
 	if err != nil {
 		c.ErrorResp(request, err)
 		return
