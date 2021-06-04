@@ -154,13 +154,14 @@
             }
         })
 
-        ws.peer.addEventListener(CHANNEL_MSG, (event, data, self) => {
+        ws.peer.addEventListener(CHANNEL_MOUSE, (event, data, self) => {
             if (data.status===0) {
                 alert(data.msg)
             }
 
             console.log(event);
         })
+
         window.addEventListener("unload",event=>{
             console.log("unload");
             ws.close()

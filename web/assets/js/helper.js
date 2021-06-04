@@ -29,6 +29,8 @@ const  CHANNEL_MOUSE="channel_mouse"
 
 const MOUSE_MOVE="mouse_move"
 const MOUSE_CLICK="mouse_click"
+const MOUSE_RIGHT_CLICK="mouse_right_click"
+const MOUSE_ROLLER="mouse_roller"
 const MOUSE_DBCLICK="mouse_dbclick"
 
 /**
