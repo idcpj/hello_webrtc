@@ -112,7 +112,9 @@ func (c *client) Read() {
 func (c *client) match(request *helpers.Request) {
 	call, ok := c.mux[request.Type]
 	if !ok {
-		log.Println("指令类型不存在")
+		log.Printf("指令类型不存在:%s\n", request.Type)
+		c.ErrorResp(request,ERROR_TYPE_NO_EXIST)
+		return
 	}
 	call(request)
 }

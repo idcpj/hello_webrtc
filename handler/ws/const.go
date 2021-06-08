@@ -19,6 +19,10 @@ var (
 	ERROR_REQUEST_NOT_ALLOW = errors.New("该请求不是 websocket 连接")
 
 	ERROR_ROOMID_NOT_EXIST = errors.New(" 房间id 不存在")
+
+	// type
+
+	ERROR_TYPE_NO_EXIST=errors.New("type 指令不存在")
 )
 
 const (

@@ -12,6 +12,10 @@ func (c *client) baseCallBack(request *helpers.Request) {
 	c.SuccessResp(request, request.Data)
 }
 
+func (c *client) errorCallBack(request *helpers.Request) {
+	c.SuccessResp(request, request.Data)
+}
+
 func (c *client) roomJoin(request *helpers.Request) {
 	if request.RoomId == "" {
 		c.ErrorResp(request, ERROR_ROOMID_NOT_EXIST)
