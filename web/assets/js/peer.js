@@ -19,9 +19,16 @@ class Peer {
     ws;
 
     pcConfig = {
-        'iceServers': [{
+        iceServers: [
+            {
             url: 'stun:stun.l.google.com:19302',
-        }]
+            },
+            {
+                url: 'turn:192.168.0.151',
+                username: 'user',
+                credential: '123'
+            }
+        ]
     }
     offerOptions = {
         offerToReceiveAudio: 1,
